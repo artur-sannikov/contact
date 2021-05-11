@@ -17,9 +17,9 @@ parser.add_argument(
 )
 parser.add_argument("--ncbi_genomes", help="input NCBI genomes", required=True)
 parser.add_argument("--taxonomy", help="input taxonomy file", required=True)
-
-###TODO: NUMBER OF ENTRIES###
-# parser.add_argument()
+parser.add_argument(
+    "--n_entries", help="threshold for number of entries in NCBI, default 5", default=5
+)
 
 # Parse the arguments
 args = parser.parse_args()
@@ -54,6 +54,11 @@ ncbi_genomes = ncbi_genomes[~(ncbi_genomes["genus"] == "uncultured")]
 
 # Transform genome size in millions
 ncbi_genomes["Size(Mb)"] = ncbi_genomes["Size(Mb)"] * 10 ** 6
+
+# Exclude genomes that have number of entries less than the input threshold
+ncbi_genomes = ncbi_genomes.groupby("genus").filter(
+    lambda x: len(x) > int(args.n_entries)
+)
 
 # Select relevant columns from the table of genomes under investigation
 cols = [
@@ -181,7 +186,7 @@ def report():
     df["GC_std"] = (df["GC_diff"] / merged["ncbi_genome_GC_genus_std"]).abs()
     df["genome_size_std"] = (
         df["genome_size_diff"] / merged["ncbi_genome_size_genus_std"]
-    )
+    ).abs()
 
     return df.to_csv("report.csv")
 
