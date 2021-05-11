@@ -57,7 +57,7 @@ ncbi_genomes["Size(Mb)"] = ncbi_genomes["Size(Mb)"] * 10 ** 6
 
 # Exclude genomes that have number of entries less than the input threshold
 ncbi_genomes = ncbi_genomes.groupby("genus").filter(
-    lambda x: len(x) > int(args.n_entries)
+    lambda x: len(x) >= int(args.n_entries)
 )
 
 # Select relevant columns from the table of genomes under investigation
