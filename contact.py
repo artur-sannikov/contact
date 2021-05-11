@@ -4,19 +4,22 @@ import re
 import argparse
 
 # Do not truncate long strings in pandas dataframes
-pd.set_option('display.max_colwidth', 999)
+pd.set_option("display.max_colwidth", 999)
 
 # Create the parser
-parser =  argparse.ArgumentParser(description="Compares GC-content and genomes size between input genomes and NCBI databse on genus level")
+parser = argparse.ArgumentParser(
+    description="Compares GC-content and genomes size between input genomes and NCBI databse on genus level"
+)
 
 # Add the arguments
-parser.add_argument("--genomes", help="input genomes under investigation", required=True)
+parser.add_argument(
+    "--genomes", help="input genomes under investigation", required=True
+)
 parser.add_argument("--ncbi_genomes", help="input NCBI genomes", required=True)
 parser.add_argument("--taxonomy", help="input taxonomy file", required=True)
-parser.add_argument("--report", help="specify the type of report: 'GC' or 'size'", required=True)
 
 ###TODO: NUMBER OF ENTRIES###
-#parser.add_argument()
+# parser.add_argument()
 
 # Parse the arguments
 args = parser.parse_args()
@@ -34,13 +37,7 @@ family_level = ncbi_taxonomy[~mask].reset_index(drop=True)
 family_level["UID"] = family_level["user_genome"].str.split("_").str[-1]
 
 # Filter out irrelevant columns from the NCBI database
-cols = [
-    "#Organism Name",
-    "Organism Groups",
-    "Size(Mb)",
-    "GC%",
-    "Level"
-]
+cols = ["#Organism Name", "Organism Groups", "Size(Mb)", "GC%", "Level"]
 ncbi_genomes = ncbi_genomes[cols].copy()
 
 # Select only complete genomes
@@ -59,31 +56,43 @@ ncbi_genomes = ncbi_genomes[~(ncbi_genomes["genus"] == "uncultured")]
 ncbi_genomes["Size(Mb)"] = ncbi_genomes["Size(Mb)"] * 10 ** 6
 
 # Select relevant columns from the table of genomes under investigation
-cols = ["Bin Id",
-        "Genome size (bp)",
-        "GC",
-       ]
+cols = [
+    "Bin Id",
+    "Genome size (bp)",
+    "GC",
+    "Completeness",
+    "Contamination",
+    "# scaffolds",
+]
 genome_characteristics = genome_characteristics[cols]
 
 # Exclude the entries where genus.species is NaN
 # This is because the Organism name is either bacterium or archaeon
 ncbi_genomes = ncbi_genomes[~ncbi_genomes["genus.species"].isnull()].copy()
 
+
 def remove_brackets(string):
     """Takes a string as input, removes brackets ('[]') from each end of the string"""
     return string.lstrip("[").rstrip("]")
+
 
 # Remove brackets from genus, species, and genus.species columns
 for col in ["genus", "species", "genus.species"]:
     ncbi_genomes[col] = ncbi_genomes[col].apply(remove_brackets).copy()
 
 # Remove the genomes not assigned at at least family level in genomes under investigation
-genome_characteristics = genome_characteristics[genome_characteristics["Bin Id"].isin(family_level["user_genome"])]
+genome_characteristics = genome_characteristics[
+    genome_characteristics["Bin Id"].isin(family_level["user_genome"])
+]
 
 # Extract genus and species to separate columns in genomes under investigation
 genome_characteristics["genus"] = genome_characteristics["Bin Id"].str.split("_").str[0]
-genome_characteristics["species"] = genome_characteristics["Bin Id"].str.split("_").str[1]
-genome_characteristics["genus.species_genomes"] = genome_characteristics["genus"] + " " + genome_characteristics["species"]
+genome_characteristics["species"] = (
+    genome_characteristics["Bin Id"].str.split("_").str[1]
+)
+genome_characteristics["genus.species_genomes"] = (
+    genome_characteristics["genus"] + " " + genome_characteristics["species"]
+)
 
 # Set genus as index in genomes under investigation
 genome_characteristics = genome_characteristics.set_index("genus")
@@ -95,28 +104,41 @@ genomes_grouped = genome_characteristics.groupby("genus")
 genome_characteristics["genomes_GC_genus"] = genomes_grouped["GC"].mean()
 
 # Compute genome size by genus in genomes under investigation and add the corresponding column
-genome_characteristics["genomes_size_genus"] = genomes_grouped["Genome size (bp)"].mean()
+genome_characteristics["genomes_size_genus"] = genomes_grouped[
+    "Genome size (bp)"
+].mean()
 
-# Compute standard deviation of GC-content by genus in in genomes under investigation and add the corresponding column 
+# Compute standard deviation of GC-content by genus in in genomes under investigation and add the corresponding column
 genome_characteristics["genomes_GC_genus_std"] = genomes_grouped["GC"].std()
 
-# Compute standard deviation of genome size by genus in in genomes under investigation and add the corresponding column 
-genome_characteristics["genomes_size_genus_std"] = genomes_grouped["Genome size (bp)"].std()
+# Compute standard deviation of genome size by genus in in genomes under investigation and add the corresponding column
+genome_characteristics["genomes_size_genus_std"] = genomes_grouped[
+    "Genome size (bp)"
+].std()
 
-# Rename the Genome size (bp) and GC columns to distinguish the species level genome size and GC-content from genus level 
-genome_characteristics = genome_characteristics.rename({"Genome size (bp)": "genomes_genome_size_species", "GC": "genomes_GC_species"}, axis="columns")
+# Rename the Genome size (bp) and GC columns to distinguish the species level genome size and GC-content from genus level
+genome_characteristics = genome_characteristics.rename(
+    {"Genome size (bp)": "genomes_genome_size_species", "GC": "genomes_GC_species"},
+    axis="columns",
+)
 
 # Set genus as index
 ncbi_genomes = ncbi_genomes.set_index("genus")
 
 # Subset from the NCBI database only the genuses from the genomes under investigation
-ncbi_genomes = ncbi_genomes[ncbi_genomes.index.get_level_values("genus").isin(genome_characteristics.index.get_level_values("genus"))]
+ncbi_genomes = ncbi_genomes[
+    ncbi_genomes.index.get_level_values("genus").isin(
+        genome_characteristics.index.get_level_values("genus")
+    )
+]
 
 # Group genomes by genus in genomes under investigation to compute statistics
 ncbi_grouped = ncbi_genomes.groupby("genus")
 
 # Compute the %GC by genus in the NCBI database
-ncbi_genomes["ncbi_GC_genus"] = ncbi_grouped["GC%"].mean() # There will be some orders/plant families but we do not care because we will exclude them when combining the data sets
+ncbi_genomes["ncbi_GC_genus"] = ncbi_grouped[
+    "GC%"
+].mean()  # There will be some orders/plant families but we do not care because we will exclude them when combining the data sets
 
 # Compute genome size by genus in the NCBI database
 ncbi_genomes["ncbi_genome_size_genus"] = ncbi_grouped["Size(Mb)"].mean()
@@ -127,97 +149,42 @@ ncbi_genomes["ncbi_genome_GC_genus_std"] = ncbi_grouped["GC%"].std()
 # Compute standard deviation of genome size by genus in NCBI database and add the corresponding column
 ncbi_genomes["ncbi_genome_size_genus_std"] = ncbi_grouped["Size(Mb)"].std()
 
-# Rename the Size(Mb) and GC(%) columns to distinguish the species level genome size and GC-content from genus level 
-ncbi_genomes = ncbi_genomes.rename({"Size(Mb)": "ncbi_genome_size_species", "GC%": "ncbi_GC_species"}, axis="columns")
+# Rename the Size(Mb) and GC(%) columns to distinguish the species level genome size and GC-content from genus level
+ncbi_genomes = ncbi_genomes.rename(
+    {"Size(Mb)": "ncbi_genome_size_species", "GC%": "ncbi_GC_species"}, axis="columns"
+)
 
 # Merge NCBI database and genomes under investigation
-merged = pd.merge(genome_characteristics, ncbi_genomes, left_index=True, right_index=True)
+merged = pd.merge(
+    genome_characteristics, ncbi_genomes, left_index=True, right_index=True
+)
 
 # Drop species duplicates
 merged = merged.drop_duplicates(subset=["Bin Id"], keep="first")
 
-def genome_size_report(df):
-    """
-    Returns report of genome size statistics
-    
-    Parameters
-    ----------
-    df: pd.DataFrame
-        pandas DataFrame with genus and genome size difference
-        
-    Returns
-    -------
-    str
-        Report on genome size difference between genomes under investigation and NCBI database for each genus
-    """
-    
-    if df["size_diff"] > 0:
-        return  f"The genome size of the {df['genus']} genus under investigation is greater than the NCBI reference by {df['size_diff']} base pairs."
-    elif df["size_diff"] == 0:
-        return f"The genome size of the {df['genus']} genus under investigation is equal to the NCBI reference."
-    else:
-        return  f"The genome size of the {df['genus']} genus under investigation is lesser than the NCBI reference by {df['size_diff']} base pairs."
 
-def compute_genome_size_diff():
-    """
-    Computes the difference of genome size between genomes under investigation and NCBI database
-    
-    Returns
-    -------
-    pandas Series
-        Uses the genome_size_report function to return the report as a pandas Series
-    """
-    # Compute GC difference 
-    diff = (merged["genomes_size_genus"] - merged["ncbi_genome_size_genus"]).reset_index()
-    
-    # Rename the second column to GC_diff
-    diff = diff.rename({0: "size_diff"}, axis="columns")
-    
-    # Suppress scientific notation
-    diff["size_diff"] = diff["size_diff"].astype("int64")
-    
-    return diff.apply(genome_size_report, axis="columns")
+def report():
+    """Saves the report on GC-content and genome size in a csv file 'report.csv'"""
+    # Columns to include in the report
+    report_cols = [
+        "Completeness",
+        "Contamination",
+        "# scaffolds",
+    ]
 
-def GC_report(df):
-    """
-    Returns report of GC differences
-    
-    Parameters
-    ----------
-    df: pd.DataFrame
-        pandas DataFrame with genus and GC-content difference 
-        
-    Returns
-    -------
-    str
-        Report on GC-content difference between genomes under investigation and NCBI database for each genus
-    """
-    
-    if df["GC_diff"] > 0:
-        return f"The GC-content of the {df['genus']} genus under investigation is greater than the NCBI reference by {df['GC_diff']}%."
-    elif df["GC_diff"] == 0:
-        return f"The GC-content of the {df['genus']} genus under investigation is equal to the NCBI reference."
-    else:
-        return f"The GC-content of the {df['genus']} genus under investigation is lesser than the NCBI reference  by {df['GC_diff']}%."
+    df = merged[report_cols].copy()
 
-    
-def compute_GC_diff():
-    """
-    Computes the difference of % of GC-content between genomes under investigation and NCBI database
-    
-    Returns
-    -------
-    pandas Series
-        Uses the GC_report function to return the report as a pandas Series
-    """
-    # Compute GC difference 
-    diff = (merged["genomes_GC_genus"] - merged["ncbi_GC_genus"]).reset_index()
-    
-    # Rename the second column to GC_diff
-    diff = diff.rename({0: "GC_diff"}, axis="columns")
-    return diff.apply(GC_report, axis=1)
+    df["GC_diff"] = merged["genomes_GC_genus"] - merged["ncbi_GC_genus"]
+    df["genome_size_diff"] = (
+        merged["genomes_size_genus"] - merged["ncbi_genome_size_genus"]
+    ).astype("int64")
+    df["GC_std"] = (df["GC_diff"] / merged["ncbi_genome_GC_genus_std"]).abs()
+    df["genome_size_std"] = (
+        df["genome_size_diff"] / merged["ncbi_genome_size_genus_std"]
+    )
 
-if args.report ==  "size":
-    print(compute_genome_size_diff().to_string())
-if args.report == "GC":
-    print(compute_GC_diff().to_string())
+    return df.to_csv("report.csv")
+
+
+if __name__ == "__main__":
+    report()
