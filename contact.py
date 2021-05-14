@@ -2,6 +2,8 @@
 import pandas as pd
 import re
 import argparse
+from pathlib import Path
+from os.path import splitext
 
 # Do not truncate long strings in pandas dataframes
 pd.set_option("display.max_colwidth", 999)
@@ -24,9 +26,17 @@ parser.add_argument(
 # Parse the arguments
 args = parser.parse_args()
 
+# Remove first 6 rows of technical information from checkM output file (input genomes)
+# This will create a new file with '_table' added to its name
+with open(args.genomes, "r") as checkM_old:
+    data = checkM_old.read().splitlines(True)
+
+with open(splitext(args.genomes)[0] + "_table.txt", "w") as checkM:
+    checkM.writelines(data[6:])
+
 # Open the input files
 ncbi_genomes = pd.read_csv(args.ncbi_genomes, dtype={"RefSeq category": str})
-genome_characteristics = pd.read_csv(args.genomes, sep="\t")
+genome_characteristics = pd.read_csv(splitext(args.genomes)[0] + "_table.txt", sep="\t")
 ncbi_taxonomy = pd.read_csv(args.taxonomy, sep="\t")
 
 # Select only the genomes that are assigned at least at the genus level in the NCBI classification
@@ -90,12 +100,12 @@ genome_characteristics = genome_characteristics[
     genome_characteristics["Bin Id"].isin(genus_level["user_genome"])
 ]
 
-# Merge genomes under investigation and taxnomic assignmetns
+# Merge input genomes and taxonomic assignments
 genome_characteristics = genome_characteristics.merge(
     genus_level, left_on=["Bin Id"], right_on=["user_genome"]
 ).drop(columns=["user_genome"])
 
-# Add genus to user's genomes
+# Add genus column to input genomes
 genome_characteristics["genus"] = (
     genome_characteristics["NCBI classification"]
     .str.split(";")
@@ -104,7 +114,7 @@ genome_characteristics["genus"] = (
     .str[1]
 )
 
-# Add species to user's genomes
+# Add species column to input genomes
 genome_characteristics["species"] = (
     genome_characteristics["NCBI classification"]
     .str.split(";")
