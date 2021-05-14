@@ -12,13 +12,13 @@ parser = argparse.ArgumentParser(
 )
 
 # Add the arguments
+parser.add_argument("--genomes", help="Input genomes to process.", required=True)
 parser.add_argument(
-    "--genomes", help="input genomes under investigation", required=True
+    "--ncbi_genomes", help="Input NCBI reference genomes.", required=True
 )
-parser.add_argument("--ncbi_genomes", help="input NCBI genomes", required=True)
-parser.add_argument("--taxonomy", help="input taxonomy file", required=True)
+parser.add_argument("--taxonomy", help="Input taxonomy file.", required=True)
 parser.add_argument(
-    "--n_entries", help="threshold for number of entries in NCBI, default 5", default=5
+    "--n_entries", help="Threshold for number of entries in NCBI, default 5.", default=5
 )
 
 # Parse the arguments
