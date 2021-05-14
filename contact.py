@@ -85,11 +85,24 @@ def remove_brackets(string):
 for col in ["genus", "species", "genus.species"]:
     ncbi_genomes[col] = ncbi_genomes[col].apply(remove_brackets).copy()
 
-# Remove the genomes not assigned at at least family level in genomes under investigation
+# Remove the genomes not assigned at at least genus level
 genome_characteristics = genome_characteristics[
     genome_characteristics["Bin Id"].isin(genus_level["user_genome"])
 ]
 
+# Merge genomes under investigation and taxnomic assignmetns
+genome_characteristics = genome_characteristics.merge(
+    genus_level, left_on=["Bin Id"], right_on=["user_genome"]
+).drop(columns=["user_genome"])
+
+# Add genus to user's genomes
+genome_characteristics["genus"] = (
+    genome_characteristics["NCBI classification"]
+    .str.split(";")
+    .str[-2]
+    .str.split("__")
+    .str[1]
+)
 # Extract genus and species to separate columns in genomes under investigation
 genome_characteristics["genus"] = genome_characteristics["Bin Id"].str.split("_").str[0]
 genome_characteristics["species"] = (
