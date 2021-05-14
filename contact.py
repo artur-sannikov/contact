@@ -220,7 +220,7 @@ def report():
         df["genome_size_diff"] / merged["ncbi_genome_size_genus_std"]
     ).abs()
 
-    return df.to_csv("report.csv")
+    return df.to_csv("report.tsv", sep="\t")
 
 
 if __name__ == "__main__":
