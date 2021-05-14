@@ -29,12 +29,12 @@ ncbi_genomes = pd.read_csv(args.ncbi_genomes, dtype={"RefSeq category": str})
 genome_characteristics = pd.read_csv(args.genomes, sep="\t")
 ncbi_taxonomy = pd.read_csv(args.taxonomy, sep="\t")
 
-# Select only the genomes that are assigned at least at the family level in the NCBI classification
-mask = ncbi_taxonomy["NCBI classification"].str.split(";").str[-3].str.contains("f__$")
-family_level = ncbi_taxonomy[~mask].reset_index(drop=True)
+# Select only the genomes that are assigned at least at the genus level in the NCBI classification
+mask = ncbi_taxonomy["NCBI classification"].str.split(";").str[-2].str.contains("g__$")
+genus_level = ncbi_taxonomy[~mask].reset_index(drop=True)
 
-# Assign the unique identified to a column
-family_level["UID"] = family_level["user_genome"].str.split("_").str[-1]
+# Remove GTDB classification
+genus_level = genus_level.drop(columns=["GTDB classification"])
 
 # Filter out irrelevant columns from the NCBI database
 cols = ["#Organism Name", "Organism Groups", "Size(Mb)", "GC%", "Level"]
@@ -87,7 +87,7 @@ for col in ["genus", "species", "genus.species"]:
 
 # Remove the genomes not assigned at at least family level in genomes under investigation
 genome_characteristics = genome_characteristics[
-    genome_characteristics["Bin Id"].isin(family_level["user_genome"])
+    genome_characteristics["Bin Id"].isin(genus_level["user_genome"])
 ]
 
 # Extract genus and species to separate columns in genomes under investigation
