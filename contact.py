@@ -103,11 +103,20 @@ genome_characteristics["genus"] = (
     .str.split("__")
     .str[1]
 )
-# Extract genus and species to separate columns in genomes under investigation
-genome_characteristics["genus"] = genome_characteristics["Bin Id"].str.split("_").str[0]
+
+# Add species to user's genomes
 genome_characteristics["species"] = (
-    genome_characteristics["Bin Id"].str.split("_").str[1]
+    genome_characteristics["NCBI classification"]
+    .str.split(";")
+    .str[-1]
+    .str.split("__")
+    .str[1]
 )
+
+# Species is sp if no species is provided
+genome_characteristics["species"].apply(lambda x: "sp" if x == "" else x)
+
+# Add genus.species column to input genomes
 genome_characteristics["genus.species_genomes"] = (
     genome_characteristics["genus"] + " " + genome_characteristics["species"]
 )
