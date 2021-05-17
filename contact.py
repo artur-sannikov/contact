@@ -114,7 +114,7 @@ ncbi_genomes = ncbi_genomes[~ncbi_genomes["genus.species"].isnull()].copy()
 
 
 def remove_brackets(string):
-    """Takes a string as input, removes brackets ('[]') from each end of the string"""
+    """Takes a string as input, removes brackets ('[]') from each end of the string."""
     return string.lstrip("[").rstrip("]")
 
 
@@ -265,7 +265,6 @@ def draw_boxplot(col, genus):
 
             Returns:
                     Creates folders for boxplot if do not exist and returns Matplotlib Axes
-
     """
 
     # Remove duplicated indices from input genomes
@@ -318,44 +317,30 @@ def draw_boxplot(col, genus):
     return ax
 
 
-###TODO?###
-
-# def save_plots(measure):
-#     """
-#     Auxilary function to save plots.
-
-#     Parameters:
-#         measure (str): either 'ncbi_GC_species' for GC-content or 'ncbi_genome_size_species' for genome size
-
-#     """
-#     for genus in ncbi_genomes.index.unique():
-#         ax = draw_boxplot(measure, genus)
-#             plt.savefig(f"./boxplots/GC-content/{genus}.jpg")
-#             plt.close()
-
-
 def main():
     report().to_csv("report.tsv", sep="\t")  # Save the report as a tsv file
+
+    # Create two different folder when using all or only complete genomes
     if args.completeness == "complete":
-        # Save GC-content boxplots
+        # Save GC-content boxplots of only complete genomes
         for genus in ncbi_genomes.index.unique():
             ax = draw_boxplot("ncbi_GC_species", genus)
             plt.savefig(f"./boxplots_complete/GC-content/{genus}.jpg")
             plt.close()
 
-        # Save genome size boxplots
+        # Save genome size boxplots of only complete genomes
         for genus in ncbi_genomes.index.unique():
             ax = draw_boxplot("ncbi_genome_size_species", genus)
             plt.savefig(f"./boxplots_complete/genome-size/{genus}.jpg")
             plt.close()
     else:
-        # Save GC-content boxplots
+        # Save GC-content boxplots of all genomes
         for genus in ncbi_genomes.index.unique():
             ax = draw_boxplot("ncbi_GC_species", genus)
             plt.savefig(f"./boxplots_all/GC-content/{genus}.jpg")
             plt.close()
 
-        # Save genome size boxplots
+        # Save genome size boxplots of all genomes
         for genus in ncbi_genomes.index.unique():
             ax = draw_boxplot("ncbi_genome_size_species", genus)
             plt.savefig(f"./boxplots_all/genome-size/{genus}.jpg")
