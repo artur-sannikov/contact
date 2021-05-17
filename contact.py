@@ -1,6 +1,7 @@
 # Imports
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 import re
 import argparse
 from pathlib import Path
@@ -202,7 +203,7 @@ merged = merged.drop_duplicates(subset=["Bin Id"], keep="first")
 
 
 def report():
-    """Saves the report on GC-content and genome size in a csv file 'report.csv'"""
+    """Saves the report on GC-content and genome size in a csv file 'report.csv'."""
     # Columns to include in the report
     report_cols = [
         "Bin Id",
@@ -229,8 +230,110 @@ def report():
     return df
 
 
+def plot_style(ax):
+    """
+    Defines boxplot style.
+    """
+    # Remove ticks and set label size
+    ax.tick_params(axis="both", labelsize=14, bottom=False, left=False)
+
+    # Set x axis label size
+    ax.set_xlabel(xlabel=plt.gca().get_xlabel(), size=18)
+
+    ax.set_ylabel(ylabel=plt.gca().get_ylabel(), size=18)
+
+    # Remove spines
+    ax.spines["right"].set_visible(False)
+    ax.spines["top"].set_visible(False)
+
+
+def draw_boxplot(col, genus):
+    """
+    Creates a folder and saves boxplots for the specified measure (GC-content or genome size) of the NCBI database.
+
+            Parameters:
+                    col (str): A column: either 'ncbi_GC_species' for GC-content or 'ncbi_genome_size_species' for genomes size
+
+            Returns:
+                    Creates folders for boxplot if do not exist and returns Matplotlib Axes
+
+    """
+
+    # Remove duplicated indices from input genomes
+    no_dups = genome_characteristics[
+        ~genome_characteristics.index.duplicated(keep="first")
+    ]
+
+    # Create folders for boxplots if do not exist
+    if col == "ncbi_GC_species":
+        Path("./boxplots/GC-content").mkdir(parents=True, exist_ok=True)
+    else:
+        Path("./boxplots/genome-size").mkdir(parents=True, exist_ok=True)
+
+    # Boxplots for each genus from NCBI database
+    ax = ncbi_genomes[ncbi_genomes.index.get_level_values("genus") == genus].boxplot(
+        column=col, grid=False, figsize=(8, 5)
+    )
+    ax.set_xticklabels("")
+
+    plot_style(ax)
+    ax.set_title(genus, fontdict={"size": 22, "weight": "bold", "alpha": 0.75})
+
+    if col == "ncbi_GC_species":
+        ax.set_ylabel("GC-content (%)")
+        # Add horizontal lines from input genomes for each genus to visually show the difference between
+        # input and database
+        ax.axhline(
+            no_dups[no_dups.index.get_level_values("genus") == genus][
+                "genomes_GC_genus"
+            ]
+            .astype(int)
+            .values,
+            color="red",
+        )
+
+    else:
+        ax.set_ylabel("Genome Size")
+        ax.axhline(
+            no_dups[no_dups.index.get_level_values("genus") == genus][
+                "genomes_size_genus"
+            ]
+            .astype(int)
+            .values,
+            color="red",
+        )
+    return ax
+
+
+# def save_plots(measure):
+#     """
+#     Auxilary function to save plots.
+
+#     Parameters:
+#         measure (str): either 'ncbi_GC_species' for GC-content or 'ncbi_genome_size_species' for genome size
+
+#     """
+#     for genus in ncbi_genomes.index.unique():
+#         ax = draw_boxplot(measure, genus)
+
+#             plt.savefig(f"./boxplots/GC-content/{genus}.jpg")
+#             plt.close()
+
+
 def main():
     report().to_csv("report.tsv", sep="\t")  # Save the report as a tsv file
+
+    # Save GC-content boxplots
+    for genus in ncbi_genomes.index.unique():
+        ax = draw_boxplot("ncbi_GC_species", genus)
+        plt.savefig(f"./boxplots/GC-content/{genus}.jpg")
+        plt.close()
+
+    # Save genome size boxplots
+    for genus in ncbi_genomes.index.unique():
+        ax = draw_boxplot("ncbi_genome_size_species", genus)
+        plt.savefig(f"./boxplots/genome-size/{genus}.jpg")
+        plt.close()
 
 
 if __name__ == "__main__":
