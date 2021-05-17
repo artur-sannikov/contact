@@ -36,6 +36,11 @@ try:
 
     with open(splitext(args.genomes)[0] + "_table.txt", "w") as checkM:
         checkM.writelines(data[6:])
+
+    genome_characteristics = pd.read_csv(
+        splitext(args.genomes)[0] + "_table.txt", sep="\t"
+    )
+
 except FileNotFoundError:
     print(f"Input genomes file {args.genomes} not found. Check if the path is correct.")
     exit()
@@ -48,8 +53,6 @@ except FileNotFoundError:
         f"Input NCBI genome file {args.ncbi_genomes} not found. Check if the path is correct."
     )
     exit()
-
-genome_characteristics = pd.read_csv(splitext(args.genomes)[0] + "_table.txt", sep="\t")
 
 try:
     ncbi_taxonomy = pd.read_csv(args.taxonomy, sep="\t")
