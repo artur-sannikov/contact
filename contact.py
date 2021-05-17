@@ -12,7 +12,7 @@ pd.set_option("display.max_colwidth", 999)
 
 # Create the parser
 parser = argparse.ArgumentParser(
-    description="Compares GC-content and genomes size between input genomes and NCBI databse on genus level"
+    description="Compares GC-content and genomes size between input genomes and reference genomes from NCBI database on genus level. Outputs results in tabular and graphic format."
 )
 
 # Add the arguments
@@ -23,6 +23,11 @@ parser.add_argument(
 parser.add_argument("--taxonomy", help="Input taxonomy file.", required=True)
 parser.add_argument(
     "--n_entries", help="Threshold for number of entries in NCBI, default 5.", default=5
+)
+parser.add_argument(
+    "--completeness",
+    help="Pass 'all' if you want to use all NCBI genomes and 'complete' if you want to use only complete genomes, default 'complete'.",
+    default="complete",
 )
 
 # Parse the arguments
@@ -71,8 +76,9 @@ genus_level = genus_level.drop(columns=["GTDB classification"])
 cols = ["#Organism Name", "Organism Groups", "Size(Mb)", "GC%", "Level"]
 ncbi_genomes = ncbi_genomes[cols].copy()
 
-# Select only complete genomes
-ncbi_genomes = ncbi_genomes[ncbi_genomes["Level"] == "Complete"].copy()
+# Select only complete genomes if specified in argument 'completeness'
+if args.completeness == "complete":
+    ncbi_genomes = ncbi_genomes[ncbi_genomes["Level"] == "Complete"].copy()
 
 # Extract genus and species in separated columns // for now only species and  genus from #OrganismName column
 ncbi_genomes["Organism Groups"].str.split(";").str[0]
