@@ -272,10 +272,16 @@ def draw_boxplot(col, genus):
     no_dups = input_genomes[~input_genomes.index.duplicated(keep="first")]
 
     # Create folders for boxplots if do not exist
-    if col == "ncbi_GC_species":
-        Path("./boxplots/GC-content").mkdir(parents=True, exist_ok=True)
+    if args.completeness == "complete":
+        if col == "ncbi_GC_species":
+            Path("./boxplots_complete/GC-content").mkdir(parents=True, exist_ok=True)
+        else:
+            Path("./boxplots_complete/genome-size").mkdir(parents=True, exist_ok=True)
     else:
-        Path("./boxplots/genome-size").mkdir(parents=True, exist_ok=True)
+        if col == "ncbi_GC_species":
+            Path("./boxplots_all/GC-content").mkdir(parents=True, exist_ok=True)
+        else:
+            Path("./boxplots_all/genome-size").mkdir(parents=True, exist_ok=True)
 
     # Boxplots for each genus from NCBI database
     ax = ncbi_genomes[ncbi_genomes.index.get_level_values("genus") == genus].boxplot(
@@ -330,18 +336,30 @@ def draw_boxplot(col, genus):
 
 def main():
     report().to_csv("report.tsv", sep="\t")  # Save the report as a tsv file
+    if args.completeness == "complete":
+        # Save GC-content boxplots
+        for genus in ncbi_genomes.index.unique():
+            ax = draw_boxplot("ncbi_GC_species", genus)
+            plt.savefig(f"./boxplots_complete/GC-content/{genus}.jpg")
+            plt.close()
 
-    # Save GC-content boxplots
-    for genus in ncbi_genomes.index.unique():
-        ax = draw_boxplot("ncbi_GC_species", genus)
-        plt.savefig(f"./boxplots/GC-content/{genus}.jpg")
-        plt.close()
+        # Save genome size boxplots
+        for genus in ncbi_genomes.index.unique():
+            ax = draw_boxplot("ncbi_genome_size_species", genus)
+            plt.savefig(f"./boxplots_complete/genome-size/{genus}.jpg")
+            plt.close()
+    else:
+        # Save GC-content boxplots
+        for genus in ncbi_genomes.index.unique():
+            ax = draw_boxplot("ncbi_GC_species", genus)
+            plt.savefig(f"./boxplots_all/GC-content/{genus}.jpg")
+            plt.close()
 
-    # Save genome size boxplots
-    for genus in ncbi_genomes.index.unique():
-        ax = draw_boxplot("ncbi_genome_size_species", genus)
-        plt.savefig(f"./boxplots/genome-size/{genus}.jpg")
-        plt.close()
+        # Save genome size boxplots
+        for genus in ncbi_genomes.index.unique():
+            ax = draw_boxplot("ncbi_genome_size_species", genus)
+            plt.savefig(f"./boxplots_all/genome-size/{genus}.jpg")
+            plt.close()
 
 
 if __name__ == "__main__":
