@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# CONTACT files/folders
+.vscode/
+boxplots_all/
+boxplots_complete/
+report.tsv
