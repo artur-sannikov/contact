@@ -305,6 +305,8 @@ def draw_boxplot(col, genus):
     return ax
 
 
+###TODO?###
+
 # def save_plots(measure):
 #     """
 #     Auxilary function to save plots.
@@ -315,7 +317,6 @@ def draw_boxplot(col, genus):
 #     """
 #     for genus in ncbi_genomes.index.unique():
 #         ax = draw_boxplot(measure, genus)
-
 #             plt.savefig(f"./boxplots/GC-content/{genus}.jpg")
 #             plt.close()
 
