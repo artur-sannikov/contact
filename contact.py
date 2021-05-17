@@ -59,10 +59,6 @@ except FileNotFoundError:
     )
     exit()
 
-###TODO###
-
-# Find a way to handle other exceptions and write an auxilary function to do it.
-
 # Select only the genomes that are assigned at least at the genus level in the NCBI classification
 mask = ncbi_taxonomy["NCBI classification"].str.split(";").str[-2].str.contains("g__$")
 genus_level = ncbi_taxonomy[~mask].reset_index(drop=True)
