@@ -1,5 +1,6 @@
 # Imports
 import pandas as pd
+import numpy as np
 import re
 import argparse
 from pathlib import Path
@@ -220,6 +221,10 @@ def report():
     df["genome_size_std"] = (
         df["genome_size_diff"] / merged["ncbi_genome_size_genus_std"]
     ).abs()
+
+    # If we divide by 0 in pandas dataframes, we get +-inf that we have to convert in NaN values
+    df.loc[~np.isfinite(df["GC_std"]), "GC_std"] = np.nan
+    df.loc[~np.isfinite(df["genome_size_std"]), "genome_size_std"] == np.nan
 
     return df
 
