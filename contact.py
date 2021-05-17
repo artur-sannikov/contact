@@ -53,7 +53,7 @@ try:
     ncbi_genomes = pd.read_csv(args.ncbi_genomes, dtype={"RefSeq category": str})
 except FileNotFoundError:
     print(
-        f"Input NCBI genome file {args.ncbi_genomes} not found. Check if the path is correct."
+        f"Input NCBI genomes file {args.ncbi_genomes} not found. Check if the path is correct."
     )
     exit()
 
@@ -114,7 +114,9 @@ ncbi_genomes = ncbi_genomes[~ncbi_genomes["genus.species"].isnull()].copy()
 
 
 def remove_brackets(string):
-    """Takes a string as input, removes brackets ('[]') from each end of the string."""
+    """
+    Takes a string as input, removes brackets ('[]') from each end of the string.
+    """
     return string.lstrip("[").rstrip("]")
 
 
@@ -212,7 +214,9 @@ merged = merged.drop_duplicates(subset=["Bin Id"], keep="first")
 
 
 def report():
-    """Saves the report on GC-content and genome size in a csv file 'report.csv'."""
+    """
+    Saves the report on GC-content and genome size in a tsv file 'report.tsv'.
+    """
     # Columns to include in the report
     report_cols = [
         "Bin Id",
@@ -318,7 +322,8 @@ def draw_boxplot(col, genus):
 
 
 def main():
-    report().to_csv("report.tsv", sep="\t")  # Save the report as a tsv file
+    # Save the report as a tsv file
+    report().to_csv("report.tsv", sep="\t")
 
     # Create two different folder when using all or only complete genomes
     if args.completeness == "complete":
