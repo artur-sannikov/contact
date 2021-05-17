@@ -37,9 +37,7 @@ try:
     with open(splitext(args.genomes)[0] + "_table.txt", "w") as checkM:
         checkM.writelines(data[6:])
 
-    genome_characteristics = pd.read_csv(
-        splitext(args.genomes)[0] + "_table.txt", sep="\t"
-    )
+    input_genomes = pd.read_csv(splitext(args.genomes)[0] + "_table.txt", sep="\t")
 
 except FileNotFoundError:
     print(f"Input genomes file {args.genomes} not found. Check if the path is correct.")
@@ -102,7 +100,7 @@ cols = [
     "Contamination",
     "# scaffolds",
 ]
-genome_characteristics = genome_characteristics[cols]
+input_genomes = input_genomes[cols]
 
 # Exclude the entries where genus.species is NaN
 # This is because the Organism name is either bacterium or archaeon
@@ -119,65 +117,51 @@ for col in ["genus", "species", "genus.species"]:
     ncbi_genomes[col] = ncbi_genomes[col].apply(remove_brackets).copy()
 
 # Remove the genomes not assigned at at least genus level
-genome_characteristics = genome_characteristics[
-    genome_characteristics["Bin Id"].isin(genus_level["user_genome"])
-]
+input_genomes = input_genomes[input_genomes["Bin Id"].isin(genus_level["user_genome"])]
 
 # Merge input genomes and taxonomic assignments
-genome_characteristics = genome_characteristics.merge(
+input_genomes = input_genomes.merge(
     genus_level, left_on=["Bin Id"], right_on=["user_genome"]
 ).drop(columns=["user_genome"])
 
 # Add genus column to input genomes
-genome_characteristics["genus"] = (
-    genome_characteristics["NCBI classification"]
-    .str.split(";")
-    .str[-2]
-    .str.split("__")
-    .str[1]
+input_genomes["genus"] = (
+    input_genomes["NCBI classification"].str.split(";").str[-2].str.split("__").str[1]
 )
 
 # Add species column to input genomes
-genome_characteristics["species"] = (
-    genome_characteristics["NCBI classification"]
-    .str.split(";")
-    .str[-1]
-    .str.split("__")
-    .str[1]
+input_genomes["species"] = (
+    input_genomes["NCBI classification"].str.split(";").str[-1].str.split("__").str[1]
 )
 
 # Species is sp if no species is provided
-genome_characteristics["species"].apply(lambda x: "sp" if x == "" else x)
+input_genomes["species"].apply(lambda x: "sp" if x == "" else x)
 
 # Add genus.species column to input genomes
-genome_characteristics["genus.species_genomes"] = (
-    genome_characteristics["genus"] + " " + genome_characteristics["species"]
+input_genomes["genus.species_genomes"] = (
+    input_genomes["genus"] + " " + input_genomes["species"]
 )
 
 # Set genus as index in genomes under investigation
-genome_characteristics = genome_characteristics.set_index("genus")
+input_genomes = input_genomes.set_index("genus")
 
 # Group genomes by genus in genomes under investigation to compute statistics
-genomes_grouped = genome_characteristics.groupby("genus")
+genomes_grouped = input_genomes.groupby("genus")
 
 # Compute GC content by genus in genomes under investigation and add the corresponding column
-genome_characteristics["genomes_GC_genus"] = genomes_grouped["GC"].mean()
+input_genomes["genomes_GC_genus"] = genomes_grouped["GC"].mean()
 
 # Compute genome size by genus in genomes under investigation and add the corresponding column
-genome_characteristics["genomes_size_genus"] = genomes_grouped[
-    "Genome size (bp)"
-].mean()
+input_genomes["genomes_size_genus"] = genomes_grouped["Genome size (bp)"].mean()
 
 # Compute standard deviation of GC-content by genus in in genomes under investigation and add the corresponding column
-genome_characteristics["genomes_GC_genus_std"] = genomes_grouped["GC"].std()
+input_genomes["genomes_GC_genus_std"] = genomes_grouped["GC"].std()
 
 # Compute standard deviation of genome size by genus in in genomes under investigation and add the corresponding column
-genome_characteristics["genomes_size_genus_std"] = genomes_grouped[
-    "Genome size (bp)"
-].std()
+input_genomes["genomes_size_genus_std"] = genomes_grouped["Genome size (bp)"].std()
 
 # Rename the Genome size (bp) and GC columns to distinguish the species level genome size and GC-content from genus level
-genome_characteristics = genome_characteristics.rename(
+input_genomes = input_genomes.rename(
     {"Genome size (bp)": "genomes_genome_size_species", "GC": "genomes_GC_species"},
     axis="columns",
 )
@@ -188,7 +172,7 @@ ncbi_genomes = ncbi_genomes.set_index("genus")
 # Subset from the NCBI database only the genuses from the genomes under investigation
 ncbi_genomes = ncbi_genomes[
     ncbi_genomes.index.get_level_values("genus").isin(
-        genome_characteristics.index.get_level_values("genus")
+        input_genomes.index.get_level_values("genus")
     )
 ]
 
@@ -215,9 +199,7 @@ ncbi_genomes = ncbi_genomes.rename(
 )
 
 # Merge NCBI database and genomes under investigation
-merged = pd.merge(
-    genome_characteristics, ncbi_genomes, left_index=True, right_index=True
-)
+merged = pd.merge(input_genomes, ncbi_genomes, left_index=True, right_index=True)
 
 # Drop species duplicates
 merged = merged.drop_duplicates(subset=["Bin Id"], keep="first")
@@ -281,9 +263,7 @@ def draw_boxplot(col, genus):
     """
 
     # Remove duplicated indices from input genomes
-    no_dups = genome_characteristics[
-        ~genome_characteristics.index.duplicated(keep="first")
-    ]
+    no_dups = input_genomes[~input_genomes.index.duplicated(keep="first")]
 
     # Create folders for boxplots if do not exist
     if col == "ncbi_GC_species":
