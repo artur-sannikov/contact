@@ -30,16 +30,38 @@ args = parser.parse_args()
 
 # Remove first 6 rows of technical information from checkM output file (input genomes)
 # This will create a new file with '_table' added to its name
-with open(args.genomes, "r") as checkM_old:
-    data = checkM_old.read().splitlines(True)
+try:
+    with open(args.genomes, "r") as checkM_old:
+        data = checkM_old.read().splitlines(True)
 
-with open(splitext(args.genomes)[0] + "_table.txt", "w") as checkM:
-    checkM.writelines(data[6:])
+    with open(splitext(args.genomes)[0] + "_table.txt", "w") as checkM:
+        checkM.writelines(data[6:])
+except FileNotFoundError:
+    print(f"Input genomes file {args.genomes} not found. Check if the path is correct.")
+    exit()
 
 # Open the input files
-ncbi_genomes = pd.read_csv(args.ncbi_genomes, dtype={"RefSeq category": str})
+try:
+    ncbi_genomes = pd.read_csv(args.ncbi_genomes, dtype={"RefSeq category": str})
+except FileNotFoundError:
+    print(
+        f"Input NCBI genome file {args.ncbi_genomes} not found. Check if the path is correct."
+    )
+    exit()
+
 genome_characteristics = pd.read_csv(splitext(args.genomes)[0] + "_table.txt", sep="\t")
-ncbi_taxonomy = pd.read_csv(args.taxonomy, sep="\t")
+
+try:
+    ncbi_taxonomy = pd.read_csv(args.taxonomy, sep="\t")
+except FileNotFoundError:
+    print(
+        f"Input taxonomy file {args.taxonomy} not found. Check if the path is correct."
+    )
+    exit()
+
+###TODO###
+
+# Find a way to handle other exceptions and write an auxilary function to do it.
 
 # Select only the genomes that are assigned at least at the genus level in the NCBI classification
 mask = ncbi_taxonomy["NCBI classification"].str.split(";").str[-2].str.contains("g__$")
