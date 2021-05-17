@@ -204,6 +204,7 @@ def report():
     """Saves the report on GC-content and genome size in a csv file 'report.csv'"""
     # Columns to include in the report
     report_cols = [
+        "Bin Id",
         "Completeness",
         "Contamination",
         "# scaffolds",
@@ -220,8 +221,12 @@ def report():
         df["genome_size_diff"] / merged["ncbi_genome_size_genus_std"]
     ).abs()
 
-    return df.to_csv("report.tsv", sep="\t")
+    return df
+
+
+def main():
+    report().to_csv("report.tsv", sep="\t")  # Save the report as a tsv file
 
 
 if __name__ == "__main__":
-    report()
+    main()
