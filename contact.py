@@ -28,6 +28,7 @@ parser.add_argument(
     "--completeness",
     help="Pass 'all' if you want to use all NCBI genomes and 'complete' if you want to use only complete genomes, default 'complete'.",
     default="complete",
+    choices=["complete", "all"],
 )
 
 # Parse the arguments
