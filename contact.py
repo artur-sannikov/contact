@@ -325,7 +325,7 @@ def main():
     # Save the report as a tsv file
     report().to_csv("report.tsv", sep="\t")
 
-    # Create two different folder when using all or only complete genomes
+    # Create two different folders for boxplots of either all or only complete genomes
     if args.completeness == "complete":
         # Save GC-content boxplots of only complete genomes
         for genus in ncbi_genomes.index.unique():
