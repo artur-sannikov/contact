@@ -1,5 +1,7 @@
 # **CONTACT**
 
+>This code was developed as part of a project carried out during the course of Microbial Metagenomics (Molecular Biology master degree) at the University of Padova. The project was supervised by Prof. Stefano Campanaro and Dr. Arianna Basile.
+
 <img src="img/logo.jpeg" alt="logo" width="200"/>
 
 CONTACT is a command line application written in Python language. It compares metagenome-assembled genomes (MAGs) characteristics, such as genome size and GC content, with a reference genomes set of isolated in NCBI database. MAGs are often assembled using single-copy core genes, which is a good way to estimate completness of genomes; however if MAGs are very fragmented, this approach could not ensure that the whole genome has been assembled, especially when marker genes are clustered. Therefore CONTACT can be useful to test if the assembly of genomes under investigation has high or low quality.
@@ -43,9 +45,9 @@ Run the following command in the terminal:
 
 ##### **Number of entries**
 There also is an optional function that permit to add a threshold to the number of entries in NCBI database.
-
-> -- n_entries <threshold to the number of entries>
-
+  ```
+> -- n_entries <threshold_to_the_number_of_entries>
+  ```
 If this parameter is not added, the threshold assumes the default paramerter of 5.
 
 For example:
@@ -56,10 +58,10 @@ It means that the software will exclude all the genus that have less that 5 geno
 
 ##### **Completeness**
 Another optional parameter about completeness of genomes can be added: the user can choose to select only complete genomes from NCBI database or to include also contigs and scaffold level.
-
-> --completeness <completness level of the genomes>
-
-If the user wants to select only complete genomes, *complete* should be written; if the user wants to use every completness level of the genomes, *all* has to be written.
+  ```
+> --completeness <completness_level_of_the_genomes>
+  ```
+If the user wants to select only complete genomes, *complete* should be written; if the user wants to use every completeness level of the genomes, *all* has to be written.
 By default, this software filters out all non-complete genomes.
 
 
@@ -77,16 +79,15 @@ For example:
 - ##### Graphical output
 Together with the tabular file, a folder called *boxplots* will be created. The folder includes other two folders, one called *GC-content*, the other called *genome-size*. They contain a series of boxplots that shows the distribution of GC-content values (or genome size values) for each genus. The boxplot is related to the reference genomes in NCBI database, in the same plot, the red line represents the mean value of GC-content (or genome size) of the input genome.
 
+For example:
+
 ![Boxplot example](img/boxplot_example.jpg)
 
 ##### **Trick to interrogate the output**
 
 To sort the output file according to the standard deviation of GC-content parameter, this command can be used:
-
+  ```
 > sed 1d report.tsv | sort -t$'\t' -k8 -nr | less -S
-
+  ```
 On this way, the genome under investigation that differs the most from its reference genome will appear as first of the list.
 The number 8 after -k represents the GC-content standard deviation column, to change the parameter, the number of the column should be changed.
-
-
-This code was developed as part of a project carried out during the course of Microbial Metagenomics (Molecular Biology master degree) at the University of Padova. The project was supervised by Prof. Stefano Campanaro and Dr. Arianna Basile.
