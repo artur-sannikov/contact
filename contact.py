@@ -228,14 +228,14 @@ def report():
 
     df = merged[report_cols].copy()
 
-    df["GC_diff"] = merged["genomes_GC_genus"] - merged["ncbi_GC_genus"]
+    df["GC_diff"] = (merged["genomes_GC_genus"] - merged["ncbi_GC_genus"]).round(3)
     df["genome_size_diff"] = (
         merged["genomes_size_genus"] - merged["ncbi_genome_size_genus"]
     ).astype("int64")
-    df["GC_std"] = (df["GC_diff"] / merged["ncbi_genome_GC_genus_std"]).abs()
+    df["GC_std"] = (df["GC_diff"] / merged["ncbi_genome_GC_genus_std"]).abs().round(3)
     df["genome_size_std"] = (
-        df["genome_size_diff"] / merged["ncbi_genome_size_genus_std"]
-    ).abs()
+        (df["genome_size_diff"] / merged["ncbi_genome_size_genus_std"]).abs().round(3)
+    )
 
     # If we divide by 0 in pandas dataframes, we get +-inf that we have to convert in NaN values
     df.loc[~np.isfinite(df["GC_std"]), "GC_std"] = np.nan
