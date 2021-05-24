@@ -154,20 +154,20 @@ input_genomes["genus.species_genomes"] = (
 # Set genus as index in genomes under investigation
 input_genomes = input_genomes.set_index("genus")
 
-# Group genomes by genus in genomes under investigation to compute statistics
-genomes_grouped = input_genomes.groupby("genus")
+# # Group genomes by genus in genomes under investigation to compute statistics
+# genomes_grouped = input_genomes.groupby("genus")
 
-# Compute GC content by genus in genomes under investigation and add the corresponding column
-input_genomes["genomes_GC_genus"] = genomes_grouped["GC"].mean()
+# # Compute GC content by genus in genomes under investigation and add the corresponding column
+# input_genomes["genomes_GC_genus"] = genomes_grouped["GC"].mean()
 
-# Compute genome size by genus in genomes under investigation and add the corresponding column
-input_genomes["genomes_size_genus"] = genomes_grouped["Genome size (bp)"].mean()
+# # Compute genome size by genus in genomes under investigation and add the corresponding column
+# input_genomes["genomes_size_genus"] = genomes_grouped["Genome size (bp)"].mean()
 
-# Compute standard deviation of GC-content by genus in in genomes under investigation and add the corresponding column
-input_genomes["genomes_GC_genus_std"] = genomes_grouped["GC"].std()
+# # Compute standard deviation of GC-content by genus in in genomes under investigation and add the corresponding column
+# input_genomes["genomes_GC_genus_std"] = genomes_grouped["GC"].std()
 
-# Compute standard deviation of genome size by genus in in genomes under investigation and add the corresponding column
-input_genomes["genomes_size_genus_std"] = genomes_grouped["Genome size (bp)"].std()
+# # Compute standard deviation of genome size by genus in in genomes under investigation and add the corresponding column
+# input_genomes["genomes_size_genus_std"] = genomes_grouped["Genome size (bp)"].std()
 
 # Rename the Genome size (bp) and GC columns to distinguish the species level genome size and GC-content from genus level
 input_genomes = input_genomes.rename(
@@ -203,9 +203,11 @@ ncbi_genomes["ncbi_genome_GC_genus_std"] = ncbi_grouped["GC%"].std()
 ncbi_genomes["ncbi_genome_size_genus_std"] = ncbi_grouped["Size(Mb)"].std()
 
 # Rename the Size(Mb) and GC(%) columns to distinguish the species level genome size and GC-content from genus level
-ncbi_genomes = ncbi_genomes.rename(
-    {"Size(Mb)": "ncbi_genome_size_species", "GC%": "ncbi_GC_species"}, axis="columns"
-)
+# Drop NCBI Size and GC-content column for species since they are no longer needed
+# ncbi_genomes = ncbi_genomes.rename(
+#     {"Size(Mb)": "ncbi_genome_size_species", "GC%": "ncbi_GC_species"}, axis="columns"
+# )
+ncbi_genomes = ncbi_genomes.drop(["Size(Mb)", "GC%"], axis="columns")
 
 # Merge NCBI database and genomes under investigation
 merged = pd.merge(input_genomes, ncbi_genomes, left_index=True, right_index=True)
@@ -228,9 +230,9 @@ def report():
 
     df = merged[report_cols].copy()
 
-    df["GC_diff"] = (merged["genomes_GC_genus"] - merged["ncbi_GC_genus"]).round(3)
+    df["GC_diff"] = (merged["genomes_GC_species"] - merged["ncbi_GC_genus"]).round(3)
     df["genome_size_diff"] = (
-        merged["genomes_size_genus"] - merged["ncbi_genome_size_genus"]
+        merged["genomes_genome_size_species"] - merged["ncbi_genome_size_genus"]
     ).astype("int64")
     df["GC_std"] = (df["GC_diff"] / merged["ncbi_genome_GC_genus_std"]).abs().round(3)
     df["genome_size_std"] = (
@@ -326,32 +328,34 @@ def main():
     # Save the report as a tsv file
     report().to_csv("report.tsv", sep="\t")
 
-    # Create two different folders for boxplots of either all or only complete genomes
-    if args.completeness == "complete":
-        # Save GC-content boxplots of only complete genomes
-        for genus in ncbi_genomes.index.unique():
-            ax = draw_boxplot("ncbi_GC_species", genus)
-            plt.savefig(f"./boxplots_complete/GC-content/{genus}.jpg")
-            plt.close()
+    # # Create two different folders for boxplots of either all or only complete genomes
+    # if args.completeness == "complete":
+    #     # Save GC-content boxplots of only complete genomes
+    #     for genus in ncbi_genomes.index.unique():
+    #         ax = draw_boxplot("ncbi_GC_species", genus)
+    #         plt.savefig(f"./boxplots_complete/GC-content/{genus}.jpg")
+    #         plt.close()
 
-        # Save genome size boxplots of only complete genomes
-        for genus in ncbi_genomes.index.unique():
-            ax = draw_boxplot("ncbi_genome_size_species", genus)
-            plt.savefig(f"./boxplots_complete/genome-size/{genus}.jpg")
-            plt.close()
-    else:
-        # Save GC-content boxplots of all genomes
-        for genus in ncbi_genomes.index.unique():
-            ax = draw_boxplot("ncbi_GC_species", genus)
-            plt.savefig(f"./boxplots_all/GC-content/{genus}.jpg")
-            plt.close()
+    #     # Save genome size boxplots of only complete genomes
+    #     for genus in ncbi_genomes.index.unique():
+    #         ax = draw_boxplot("ncbi_genome_size_species", genus)
+    #         plt.savefig(f"./boxplots_complete/genome-size/{genus}.jpg")
+    #         plt.close()
+    # else:
+    #     # Save GC-content boxplots of all genomes
+    #     for genus in ncbi_genomes.index.unique():
+    #         ax = draw_boxplot("ncbi_GC_species", genus)
+    #         plt.savefig(f"./boxplots_all/GC-content/{genus}.jpg")
+    #         plt.close()
 
-        # Save genome size boxplots of all genomes
-        for genus in ncbi_genomes.index.unique():
-            ax = draw_boxplot("ncbi_genome_size_species", genus)
-            plt.savefig(f"./boxplots_all/genome-size/{genus}.jpg")
-            plt.close()
+    #     # Save genome size boxplots of all genomes
+    #     for genus in ncbi_genomes.index.unique():
+    #         ax = draw_boxplot("ncbi_genome_size_species", genus)
+    #         plt.savefig(f"./boxplots_all/genome-size/{genus}.jpg")
+    #         plt.close()
 
 
 if __name__ == "__main__":
     main()
+    no_dups = input_genomes[~input_genomes.index.duplicated(keep="first")]
+    no_dups.to_csv("no_dups.tsv", sep="\t")
