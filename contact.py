@@ -7,9 +7,6 @@ import argparse
 from pathlib import Path
 from os.path import splitext
 
-# Do not truncate long strings in pandas dataframes
-pd.set_option("display.max_colwidth", 999)
-
 # Create the parser
 parser = argparse.ArgumentParser(
     description="Compares GC-content and genomes size between input genomes and reference genomes from NCBI database on genus level. Outputs results in tabular and graphic format."
@@ -81,7 +78,7 @@ ncbi_genomes = ncbi_genomes[cols].copy()
 if args.completeness == "complete":
     ncbi_genomes = ncbi_genomes[ncbi_genomes["Level"] == "Complete"].copy()
 
-# Extract genus and species in separated columns // for now only species and  genus from #OrganismName column
+# Extract genus and species in separated columns // for now only species and genus from #OrganismName column
 ncbi_genomes["Organism Groups"].str.split(";").str[0]
 ncbi_genomes["genus"] = ncbi_genomes["#Organism Name"].str.split(" ").str[0]
 ncbi_genomes["species"] = ncbi_genomes["#Organism Name"].str.split(" ").str[1]
@@ -98,7 +95,7 @@ ncbi_genomes = ncbi_genomes.groupby("genus").filter(
     lambda x: len(x) >= int(args.n_entries)
 )
 
-# Select relevant columns from the table of genomes under investigation
+# Select relevant columns from the table of input genomes
 cols = [
     "Bin Id",
     "Genome size (bp)",
@@ -116,7 +113,7 @@ ncbi_genomes = ncbi_genomes[~ncbi_genomes["genus.species"].isnull()].copy()
 
 def remove_brackets(string):
     """
-    Takes a string as input, removes brackets ('[]') from each end of the string.
+    Takes a string as input, removes square brackets ('[]') from each side of the string.
     """
     return string.lstrip("[").rstrip("]")
 
@@ -151,23 +148,8 @@ input_genomes["genus.species_genomes"] = (
     input_genomes["genus"] + " " + input_genomes["species"]
 )
 
-# Set genus as index in genomes under investigation
+# Set genus as index in input genomes
 input_genomes = input_genomes.set_index("genus")
-
-# # Group genomes by genus in genomes under investigation to compute statistics
-# genomes_grouped = input_genomes.groupby("genus")
-
-# # Compute GC content by genus in genomes under investigation and add the corresponding column
-# input_genomes["genomes_GC_genus"] = genomes_grouped["GC"].mean()
-
-# # Compute genome size by genus in genomes under investigation and add the corresponding column
-# input_genomes["genomes_size_genus"] = genomes_grouped["Genome size (bp)"].mean()
-
-# # Compute standard deviation of GC-content by genus in in genomes under investigation and add the corresponding column
-# input_genomes["genomes_GC_genus_std"] = genomes_grouped["GC"].std()
-
-# # Compute standard deviation of genome size by genus in in genomes under investigation and add the corresponding column
-# input_genomes["genomes_size_genus_std"] = genomes_grouped["Genome size (bp)"].std()
 
 # Rename the Genome size (bp) and GC columns to distinguish the species level genome size and GC-content from genus level
 input_genomes = input_genomes.rename(
@@ -178,22 +160,22 @@ input_genomes = input_genomes.rename(
 # Set genus as index
 ncbi_genomes = ncbi_genomes.set_index("genus")
 
-# Subset from the NCBI database only the genuses from the genomes under investigation
+# Subset from the NCBI database only the genera present in input genomes
 ncbi_genomes = ncbi_genomes[
     ncbi_genomes.index.get_level_values("genus").isin(
         input_genomes.index.get_level_values("genus")
     )
 ]
 
-# Group genomes by genus in genomes under investigation to compute statistics
+# Group genomes by genus in input genomes to compute downstream statistics
 ncbi_grouped = ncbi_genomes.groupby("genus")
 
-# Compute the %GC by genus in the NCBI database
+# Compute the %GC by genus in the NCBI database and add the corresponding column
 ncbi_genomes["ncbi_GC_genus"] = ncbi_grouped[
     "GC%"
-].mean()  # There will be some orders/plant families but we do not care because we will exclude them when combining the data sets
+].mean()  # There will be some plant families but we do not care because we will exclude them when combining the data sets
 
-# Compute genome size by genus in the NCBI database
+# Compute mean genome size by genus in the NCBI database and add the corresponding column
 ncbi_genomes["ncbi_genome_size_genus"] = ncbi_grouped["Size(Mb)"].mean()
 
 # Compute standard deviation of GC-content by genus in NCBI database and add the corresponding column
@@ -202,14 +184,7 @@ ncbi_genomes["ncbi_genome_GC_genus_std"] = ncbi_grouped["GC%"].std()
 # Compute standard deviation of genome size by genus in NCBI database and add the corresponding column
 ncbi_genomes["ncbi_genome_size_genus_std"] = ncbi_grouped["Size(Mb)"].std()
 
-# Rename the Size(Mb) and GC(%) columns to distinguish the species level genome size and GC-content from genus level
-# Drop NCBI Size and GC-content column for species since they are no longer needed
-# ncbi_genomes = ncbi_genomes.rename(
-#     {"Size(Mb)": "ncbi_genome_size_species", "GC%": "ncbi_GC_species"}, axis="columns"
-# )
-ncbi_genomes = ncbi_genomes.drop(["Size(Mb)", "GC%"], axis="columns")
-
-# Merge NCBI database and genomes under investigation
+# Merge NCBI database and input genomes
 merged = pd.merge(input_genomes, ncbi_genomes, left_index=True, right_index=True)
 
 # Drop species duplicates
@@ -230,6 +205,7 @@ def report():
 
     df = merged[report_cols].copy()
 
+    # Compute statistics
     df["GC_diff"] = (merged["genomes_GC_species"] - merged["ncbi_GC_genus"]).round(3)
     df["genome_size_diff"] = (
         merged["genomes_genome_size_species"] - merged["ncbi_genome_size_genus"]
@@ -263,59 +239,58 @@ def plot_style(ax):
     ax.spines["top"].set_visible(False)
 
 
-def draw_boxplot(col, genus):
+def draw_boxplot(col, genus, bin_id):
     """
-    Creates a folder and saves boxplots for the specified measure (GC-content or genome size) of the NCBI database.
+    Creates a folder and saves boxplots for the specified measure (GC-content or genome size) of the NCBI database with a horizontal line
+    that shows the position of input genome compared to the distribution of a measure of its genome in the NCBI database.
 
             Parameters:
-                    col (str): A column: either 'ncbi_GC_species' for GC-content or 'ncbi_genome_size_species' for genomes size
+                    col (str): a column, either 'GC%' for GC-content or 'Size(Mb)' for genomes size
+                    genus (str): genus from NCBI database for which the distribution should be plotted
+                    bin_id (str): genome id from input genomes
 
             Returns:
-                    Creates folders for boxplot if do not exist and returns Matplotlib Axes
+                    Creates folders for boxplots if do not exist and returns Matplotlib Axes
     """
-
-    # Remove duplicated indices from input genomes
-    no_dups = input_genomes[~input_genomes.index.duplicated(keep="first")]
 
     # Create folders for boxplots if do not exist
     if args.completeness == "complete":
-        if col == "ncbi_GC_species":
+        if col == "GC%":
             Path("./boxplots_complete/GC-content").mkdir(parents=True, exist_ok=True)
         else:
             Path("./boxplots_complete/genome-size").mkdir(parents=True, exist_ok=True)
     else:
-        if col == "ncbi_GC_species":
+        if col == "GC%":
             Path("./boxplots_all/GC-content").mkdir(parents=True, exist_ok=True)
         else:
             Path("./boxplots_all/genome-size").mkdir(parents=True, exist_ok=True)
 
     # Boxplots for each genus from NCBI database
+    # If the genus was filtered out we do not need its boxplot
     ax = ncbi_genomes[ncbi_genomes.index.get_level_values("genus") == genus].boxplot(
         column=col, grid=False, figsize=(8, 5)
     )
     ax.set_xticklabels("")
 
     plot_style(ax)
-    ax.set_title(genus, fontdict={"size": 22, "weight": "bold", "alpha": 0.75})
+    ax.set_title(bin_id, fontdict={"size": 22, "weight": "bold", "alpha": 0.75})
 
-    if col == "ncbi_GC_species":
+    if col == "GC%":
         ax.set_ylabel("GC-content (%)")
+
         # Add horizontal lines from input genomes for each genus to visually show the difference between
         # input and database
         ax.axhline(
-            no_dups[no_dups.index.get_level_values("genus") == genus][
-                "genomes_GC_genus"
-            ]
+            input_genomes[input_genomes["Bin Id"] == bin_id]["genomes_GC_species"]
             .astype(int)
             .values,
             color="red",
         )
 
     else:
-        ax.set_ylabel("Genome Size")
         ax.axhline(
-            no_dups[no_dups.index.get_level_values("genus") == genus][
-                "genomes_size_genus"
+            input_genomes[input_genomes["Bin Id"] == bin_id][
+                "genomes_genome_size_species"
             ]
             .astype(int)
             .values,
@@ -328,34 +303,47 @@ def main():
     # Save the report as a tsv file
     report().to_csv("report.tsv", sep="\t")
 
-    # # Create two different folders for boxplots of either all or only complete genomes
-    # if args.completeness == "complete":
-    #     # Save GC-content boxplots of only complete genomes
-    #     for genus in ncbi_genomes.index.unique():
-    #         ax = draw_boxplot("ncbi_GC_species", genus)
-    #         plt.savefig(f"./boxplots_complete/GC-content/{genus}.jpg")
-    #         plt.close()
+    # Save boxplots of GC% for complete genomes and output in console excluded input ids
+    if args.completeness == "complete":
+        for bin_id in input_genomes["Bin Id"]:
+            genus = input_genomes[input_genomes["Bin Id"] == bin_id].index.values[0]
+            if genus in ncbi_genomes.index.get_level_values("genus").unique():
+                draw_boxplot("GC%", genus, bin_id)
+                plt.savefig(f"./boxplots_complete/GC-content/{bin_id}.jpg")
+                plt.close()
+            else:
+                print(
+                    f"Excluding {bin_id}, no genus found for this id in filtered NCBI database."
+                )
 
-    #     # Save genome size boxplots of only complete genomes
-    #     for genus in ncbi_genomes.index.unique():
-    #         ax = draw_boxplot("ncbi_genome_size_species", genus)
-    #         plt.savefig(f"./boxplots_complete/genome-size/{genus}.jpg")
-    #         plt.close()
-    # else:
-    #     # Save GC-content boxplots of all genomes
-    #     for genus in ncbi_genomes.index.unique():
-    #         ax = draw_boxplot("ncbi_GC_species", genus)
-    #         plt.savefig(f"./boxplots_all/GC-content/{genus}.jpg")
-    #         plt.close()
+        # Save boxplots of genomes size for complete genomes
+        for bin_id in input_genomes["Bin Id"]:
+            genus = input_genomes[input_genomes["Bin Id"] == bin_id].index.values[0]
+            if genus in ncbi_genomes.index.get_level_values("genus").unique():
+                draw_boxplot("Size(Mb)", genus, bin_id)
+                plt.savefig(f"./boxplots_complete/genome-size/{bin_id}.jpg")
+                plt.close()
 
-    #     # Save genome size boxplots of all genomes
-    #     for genus in ncbi_genomes.index.unique():
-    #         ax = draw_boxplot("ncbi_genome_size_species", genus)
-    #         plt.savefig(f"./boxplots_all/genome-size/{genus}.jpg")
-    #         plt.close()
+    else:
+        # Save boxplots of GC% for all genomes and output in console excluded input ids
+        for bin_id in input_genomes["Bin Id"]:
+            genus = input_genomes[input_genomes["Bin Id"] == bin_id].index.values[0]
+            if genus in ncbi_genomes.index.get_level_values("genus").unique():
+                draw_boxplot("GC%", genus, bin_id)
+                plt.savefig(f"./boxplots_all/GC-content/{bin_id}.jpg")
+                plt.close()
+            else:
+                print(
+                    f"Excluding {bin_id}, no genus found for this id in filtered NCBI database."
+                )
+        # Save boxplots of genomes size for all genomes
+        for bin_id in input_genomes["Bin Id"]:
+            genus = input_genomes[input_genomes["Bin Id"] == bin_id].index.values[0]
+            if genus in ncbi_genomes.index.get_level_values("genus").unique():
+                draw_boxplot("Size(Mb)", genus, bin_id)
+                plt.savefig(f"./boxplots_all/genome-size/{bin_id}.jpg")
+                plt.close()
 
 
 if __name__ == "__main__":
     main()
-    no_dups = input_genomes[~input_genomes.index.duplicated(keep="first")]
-    no_dups.to_csv("no_dups.tsv", sep="\t")
