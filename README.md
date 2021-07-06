@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # **CONTACT**
 
 >This code was developed as part of a project carried out during the course of Microbial Metagenomics (Molecular Biology master degree) at the University of Padova. The project was supervised by [Prof. Stefano Campanaro](https://github.com/stefcamp) and [Dr. Arianna Basile](https://github.com/arianccbasile).
@@ -204,4 +203,3 @@ To sort the output file according to the standard deviation of GC-content parame
   ```
 In this way, the genomes are listed in decreasing order by the number that shows if the genomes lie within a certain number of standard deviations.
 The number 8 after -k represents the GC_std column. To change the parameter, the number of the column should be changed.
->>>>>>> 3143ae5891e38ef93c597cc7bd91cd0fef302c36
